@@ -103,7 +103,6 @@ class ResearchCrew:
 # Example usage
 if __name__ == "__main__":
     # Initialize the research crew
-    crew = ResearchCrew(openai_api_key="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")
     
     # Example research topics
     topics = [
