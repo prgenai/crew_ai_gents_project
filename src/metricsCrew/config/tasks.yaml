@@ -1,0 +1,16 @@
+# Task Configurations
+
+schema_analysis:
+  expected_output: "Detailed schema information including column metadata, relationships, and business glossary"
+
+query_interpretation:
+  expected_output: "Structured JSON with analysis requirements including metrics, dimensions, filters, and analysis type"
+
+code_generation:
+  expected_output: "Executable Python code that performs the requested analysis"
+
+result_analysis:
+  expected_output: "Business interpretation and visualizations of analysis results"
+
+response_synthesis:
+  expected_output: "Comprehensive answer to user's query in business language"

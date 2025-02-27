@@ -1,0 +1,8 @@
+# Tool Configurations
+
+schema_analysis_tool:
+  execution_timeout: 30
+
+result_analysis_tool:
+  execution_timeout: 60
+  max_visualization_size: 1000000
