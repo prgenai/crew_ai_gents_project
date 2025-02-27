@@ -1,106 +1,185 @@
+"""
+Main Application Module
+
+This module serves as the entry point for the Business Data Analysis system,
+providing a command-line interface for interacting with the system.
+"""
+
+import os
 import sys
+import argparse
 import json
-from src.metricsCrew.agents.agent_manager import AgentManager
+from typing import Dict, Any, Optional, List
+from dotenv import load_dotenv
+
 from src.metricsCrew.core.crew_manager import CrewManager
-from src.metricsCrew.core.config import Config
+from src.metricsCrew.config import get_config, get_data_source_config
 
-def print_header():
-    """Print application header"""
-    print("\n" + "=" * 80)
-    print(" " * 25 + "AI METRICS AGENT SYSTEM")
-    print("=" * 80)
 
-def print_help():
-    """Print help information"""
-    print("\nAvailable commands:")  
-    print("  query [your question]  - Ask a question about application metrics")
-    print("  complex [your question] - Ask a complex question (uses multiple agents)")
-    print("  help                   - Show this help information")
-    print("  exit                   - Exit the application")
-    print("\nExample queries:")
-    print("  query Show performance metrics for PaymentAPI")
-    print("  query Analyze error patterns in the last 24 hours")
-    print("  query Check CPU usage across all services")
-    print("  query Display business metrics for the last month")
-    print("  complex Why did we see a drop in revenue yesterday?")
+def setup_environment():
+    """Set up the environment for the application."""
+    dotenv_path = "/Users/home/dev/crewAI/.env"
+    load_dotenv(dotenv_path)
+    # Check for required environment variables
+    if not os.environ.get("GOOGLE_API_KEY"):
+        print("GOOGLE_API_KEY environment variable not set")
+        print("Please set it with: export GOOGLE_API_KEY=your_api_key")
+        sys.exit(1)
 
-def format_output(result):
-    """Format the output in a readable way"""
-    return json.dumps(result, indent=2)
+
+def parse_arguments():
+    """Parse command-line arguments."""
+    parser = argparse.ArgumentParser(
+        description="Business Data Analysis System"
+    )
+    
+    # Create subparsers for different commands
+    subparsers = parser.add_subparsers(dest="command", help="Command to execute")
+    
+    # Query command
+    query_parser = subparsers.add_parser("query", help="Query a dataset")
+    query_parser.add_argument("text", help="Query text")
+    query_parser.add_argument("--dataset", "-d", help="Dataset ID to query")
+    
+    # Analyze command
+    analyze_parser = subparsers.add_parser("analyze", help="Analyze a dataset")
+    analyze_parser.add_argument("path", help="Path to the dataset file")
+    analyze_parser.add_argument("--id", help="Identifier for the dataset")
+    analyze_parser.add_argument("--description", help="Description of the dataset")
+    
+    # List command
+    subparsers.add_parser("list", help="List available datasets")
+    
+    # Interactive mode
+    subparsers.add_parser("interactive", help="Start interactive query mode")
+    
+    return parser.parse_args()
+
+
+def process_query(crew_manager: CrewManager, query: str, dataset_id: Optional[str] = None):
+    """
+    Process a query using the CrewManager.
+    
+    Args:
+        crew_manager: CrewManager instance
+        query: Query text
+        dataset_id: Optional dataset ID to query
+    """
+    print(f"\nAnalyzing: '{query}'")
+    print("This may take a minute or two...\n")
+    
+    # Execute the query
+    result = crew_manager.analyze_query(query, dataset_id)
+    
+    # Check for errors
+    if "error" in result:
+        print(f"Error: {result['error']}")
+        return
+    
+    # Print the result
+    print("\n===== ANALYSIS RESULT =====\n")
+    print(result["result"])
+    print("\n===========================\n")
+
+
+def process_analyze(crew_manager: CrewManager, path: str, dataset_id: Optional[str] = None,
+                  description: Optional[str] = None):
+    """
+    Process a dataset analysis using the CrewManager.
+    
+    Args:
+        crew_manager: CrewManager instance
+        path: Path to the dataset file
+        dataset_id: Optional identifier for the dataset
+        description: Optional description of the dataset
+    """
+    print(f"\nAnalyzing dataset: '{path}'")
+    print("This may take a minute...\n")
+    
+    # Execute the analysis
+    result = crew_manager.analyze_dataset(path, dataset_id, description)
+    
+    # Check for errors
+    if "error" in result:
+        print(f"Error: {result['error']}")
+        return
+    
+    # Print the result
+    print("\n===== DATASET ANALYSIS =====\n")
+    print(json.dumps(result, indent=2))
+    print("\n============================\n")
+
+
+def list_datasets(crew_manager: CrewManager):
+    """
+    List available datasets using the CrewManager.
+    
+    Args:
+        crew_manager: CrewManager instance
+    """
+    datasets = crew_manager.get_available_datasets()
+    
+    if not datasets:
+        print("No datasets available")
+        return
+    
+    print("\n===== AVAILABLE DATASETS =====\n")
+    
+    for dataset_id, dataset_info in datasets.items():
+        print(f"ID: {dataset_id}")
+        print(f"Path: {dataset_info.get('path', 'N/A')}")
+        print(f"Description: {dataset_info.get('description', 'N/A')}")
+        print()
+    
+    print("=============================\n")
+
+
+def interactive_mode(crew_manager: CrewManager):
+    """
+    Start interactive query mode.
+    
+    Args:
+        crew_manager: CrewManager instance
+    """
+    print("\n===== Interactive Query Mode =====")
+    print("Type 'exit' to quit, 'list' to show available datasets\n")
+    
+    while True:
+        query = input("Query: ")
+        
+        if query.lower() == "exit":
+            break
+        elif query.lower() == "list":
+            list_datasets(crew_manager)
+            continue
+        
+        process_query(crew_manager, query)
+
 
 def main():
-    """Main application entry point"""
-    try:
-        # Validate configuration
-        Config.validate()
-        
-        # Initialize agent and crew managers
-        agent_manager = AgentManager()
-        crew_manager = CrewManager(agent_manager)
-        
-        print_header()
-        print("\nAI Metrics Agent initialized and ready.")
-        print_help()
-        
-        # Command loop
-        while True:
-            try:
-                # Get user input
-                user_input = input("\n> ").strip()
-                
-                # Process commands
-                if user_input.lower() == 'exit':
-                    print("Exiting application...")
-                    break
-                elif user_input.lower() == 'help':
-                    print_help()
-                elif user_input.lower().startswith('query '):
-                    query = user_input[6:].strip()
-                    if not query:
-                        print("Please provide a query. Example: query Show performance metrics")
-                        continue
-                    
-                    print(f"\nProcessing query: {query}")
-                    print("This may take a moment...\n")
-                    
-                    result = crew_manager.process_query(query)
-                    print("\nRESULT:")
-                    print("-" * 80)
-                    print(result["result"])
-                    print("-" * 80)
-                elif user_input.lower().startswith('complex '):
-                    query = user_input[8:].strip()
-                    if not query:
-                        print("Please provide a complex query.")
-                        continue
-                    
-                    print(f"\nProcessing complex query: {query}")
-                    print("This may take some time as multiple agents work on your request...\n")
-                    
-                    result = crew_manager.process_complex_query(query)
-                    print("\nRESULT:")
-                    print("-" * 80)
-                    print(result["result"])
-                    print("-" * 80)
-                else:
-                    print("Unknown command. Type 'help' for available commands.")
-            
-            except KeyboardInterrupt:
-                print("\nOperation cancelled. Type 'exit' to quit or continue with a new query.")
-            except Exception as e:
-                print(f"Error processing input: {str(e)}")
+    """Main application entry point."""
+    # Set up the environment
+    setup_environment()
     
-    except ValueError as e:
-        print(f"Configuration error: {str(e)}")
-        print("Please set up your .env file with required values.")
-        return 1
-    except KeyboardInterrupt:
-        print("\nApplication terminated by user.")
-    except Exception as e:
-        print(f"Unexpected error: {str(e)}")
-        return 1
+    # Parse arguments
+    args = parse_arguments()
     
-    return 0
+    # Create the crew manager
+    crew_manager = CrewManager()
+    
+    # Process the command
+    if args.command == "query":
+        process_query(crew_manager, args.text, args.dataset)
+    elif args.command == "analyze":
+        process_analyze(crew_manager, args.path, args.id, args.description)
+    elif args.command == "list":
+        list_datasets(crew_manager)
+    elif args.command == "interactive":
+        interactive_mode(crew_manager)
+    else:
+        # Default to interactive mode if no command specified
+        interactive_mode(crew_manager)
+
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()

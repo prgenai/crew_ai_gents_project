@@ -1,0 +1,20 @@
+# Data Sources Configuration
+
+superstore:
+  name: "Superstore Sales Dataset"
+  description: "Retail sales dataset with product categories, regions, and business metrics"
+  type: "csv"
+  path: "tests/dataset/superstore.csv"
+  primary_metrics:
+    - "Sales"
+    - "Profit"
+    - "Quantity"
+  primary_dimensions:
+    - "Category"
+    - "Sub-Category"
+    - "Region"
+    - "Segment"
+  time_dimension: "Order Date"
+  refresh_frequency: "manual"
+  credentials:
+    type: "none"  # No credentials needed for file-based sources

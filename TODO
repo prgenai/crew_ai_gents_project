@@ -1,7 +1,3 @@
-I think this is how I want to approach this POC:
-1) Gather a diverse dataset big enough for my POC to get people impressed and excited for this project
-2) Figure out what the right agent architecture is, how to prompt all the agents and routing the queries
-3) How those agents should then query the dataset
-4) What the output should look like
 
-Throughout this process we will keep reiterating the entire architecture and add details as necessary
+1. Start with a single data source and agent for one query type.
+2. Add multiple data sources and specialized agents for each query type.
