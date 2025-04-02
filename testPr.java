@@ -2,6 +2,9 @@ import java.io.*;
 
 class GFG {
   
+  private int Num;
+
+  private static final String name;
     // Function to find the biggest of three numbers
     static int biggestOfThree(int x, int y, int z)
     {
